@@ -7,11 +7,12 @@
 <p class="notice notice-ok">この共有キーを相手に伝えてください。</p>
 
 <div class="field">
-  <p class="label">共有キー</p>
-  <div class="key-row">
-    <input type="text" id="share-key-value" class="mono" value="{{ share_key }}" readonly>
-    <button type="button" class="btn btn-sub" data-copy-target="#share-key-value">コピー</button>
+  <div class="field-head">
+    <p class="label">共有キー</p>
+    <button type="button" class="btn btn-sub btn-small"
+            data-copy-target="#share-key-value">コピー</button>
   </div>
+  <input type="text" id="share-key-value" class="mono" value="{{ share_key }}" readonly>
   <p class="help">共有キーはこの画面でのみ確認できます。画面を離れると再表示できません。</p>
 </div>
 
