@@ -388,12 +388,20 @@ textarea:focus-visible,
 /* --- 画面幅 ---------------------------------------------------------- */
 
 @media (min-width: 560px) {
+  /* PC では全幅に広げず、文言に応じた幅にする。
+     スマートフォン幅では押しやすさを優先して全幅のまま。 */
+  .btn-primary,
+  .btn-danger {
+    width: auto;
+    min-width: 160px;
+  }
+
   .actions {
     flex-direction: row;
   }
 
   .actions .btn {
     width: auto;
-    flex: 1;
+    flex: 0 0 auto;
   }
 }
