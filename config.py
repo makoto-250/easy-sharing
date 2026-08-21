@@ -69,11 +69,19 @@ class ConfigError(RuntimeError):
 
 
 def validate() -> None:
-    """起動時に必須の秘密情報が設定されているか確認する。"""
+    """起動時に必須の秘密情報が設定されているか確認する。
+
+    SECRET_KEY が弱いとセッション Cookie を偽造され、任意の共有 ID へ
+    アクセスされうるため、KEY_HMAC_SECRET と同じく十分な長さを要求する。
+    """
     missing = [n for n in ("KEY_HMAC_SECRET", "SECRET_KEY") if not globals()[n]]
     if missing:
         raise ConfigError(
             f"必須の環境変数が未設定です: {', '.join(missing)} / .env.example を参照してください"
         )
-    if len(KEY_HMAC_SECRET) < 32:
-        raise ConfigError("KEY_HMAC_SECRET は32文字以上のランダム文字列にしてください")
+    for name in ("KEY_HMAC_SECRET", "SECRET_KEY"):
+        if len(globals()[name]) < 32:
+            raise ConfigError(
+                f"{name} は32文字以上のランダム文字列にしてください "
+                '（例: python -c "import secrets; print(secrets.token_urlsafe(48))"）'
+            )

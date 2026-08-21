@@ -76,6 +76,27 @@ def session():
         conn.close()
 
 
+@contextlib.contextmanager
+def immediate():
+    """BEGIN IMMEDIATE で書き込みロックを取ってから処理する。
+
+    「件数を数えてから挿入する」ような確認＋書き込みを、他ワーカーに割り込まれず
+    アトミックに行うために使う（容量制限・レート制限の並行すり抜け対策）。
+    SQLite は書き込みを1つに直列化するため、ロック取得後の COUNT は確定値になる。
+    """
+    conn = connect()
+    conn.isolation_level = None  # 自動 BEGIN を止めて手動制御する
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        yield conn
+        conn.execute("COMMIT")
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
+    finally:
+        conn.close()
+
+
 def init_db() -> None:
     with session() as conn:
         conn.executescript(SCHEMA)

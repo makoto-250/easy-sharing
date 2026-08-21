@@ -98,9 +98,11 @@ def validate_upload(storage, declared_mime: str | None) -> tuple[str, int, bytes
     if allowed_mime is None:
         raise FileRejected("このファイル形式には対応していません。")
 
-    # 申告された Content-Type も一致していること（ただしこれ単独では判定しない）。
+    # 申告された Content-Type が「存在し」「許可タイプと一致する」こと。
+    # 空でも通してしまうと 3 点一致（拡張子・MIME・シグネチャ）が崩れるため、
+    # 未申告も不一致として扱う（ただしこれ単独では判定しない）。
     declared = (declared_mime or "").split(";")[0].strip().lower()
-    if declared and declared != allowed_mime:
+    if declared != allowed_mime:
         raise FileRejected("このファイル形式には対応していません。")
 
     stream = storage.stream

@@ -1,3 +1,5 @@
 # 定期削除処理（仕様 9.2）。サーバーのタイムゾーンは Asia/Tokyo。
-# crontab -e で以下を追加する。
-0 0,12 * * * cd /root/easy-sharing && .venv/bin/python cleanup.py >> /var/log/easy-sharing-cleanup.log 2>&1
+# 保存領域を書き換えるので、アプリと同じ easyshare ユーザーで実行する。
+#   sudo -u easyshare crontab -e
+# で以下を追加する。
+0 0,12 * * * cd /opt/easy-sharing && .venv/bin/python cleanup.py >> /var/lib/easy-sharing/cleanup.log 2>&1

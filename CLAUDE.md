@@ -17,10 +17,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 本番 | ConoHa VPS `160.251.183.195` (Ubuntu 22.04)、`ssh root@160.251.183.195` |
 | 公開URL | https://easy.ai-web-support.com |
 | リポジトリ | https://github.com/makoto-250/easy-sharing （PC・VPS 両方に origin 設定済み） |
-| VPS パス | `/root/easy-sharing` |
+| VPS パス | `/opt/easy-sharing`（コードは root 所有・読み取りのみ） |
+| 実行ユーザー | **easyshare**（非root。systemd で ProtectSystem=strict） |
 | ポート | **5040**（127.0.0.1 のみ。nginx が proxy する） |
-| DB | SQLite `/var/lib/easy-sharing/easy_sharing.db` |
-| 保存領域 | `/var/lib/easy-sharing/uploads`（Web 公開ディレクトリ外・700） |
+| DB | SQLite `/var/lib/easy-sharing/easy_sharing.db`（easyshare 所有） |
+| 保存領域 | `/var/lib/easy-sharing/uploads`（Web 公開ディレクトリ外・700・easyshare 所有） |
 | Python | ローカル 3.14 / VPS 3.10、いずれも `.venv` |
 
 **同じサーバーで `ai-web-support.com`（ポート5010）他が稼働中。nginx の既存 conf と
@@ -38,12 +39,13 @@ VPS の他ポート使用状況: 5000, 5001, 5003, 5006-5008, 5010-5012, 5015, 5
 .venv/Scripts/python.exe -m pytest test_acceptance.py -q
 
 # VPS デプロイ（PC で commit & push したあとに実行する）
-ssh root@160.251.183.195 '/root/easy-sharing/deploy/deploy.sh'
+ssh root@160.251.183.195 '/opt/easy-sharing/deploy/deploy.sh'
 
 # VPS 個別操作
 systemctl restart easy-sharing
 journalctl -u easy-sharing -n 50 --no-pager
-.venv/bin/python cleanup.py              # 定期削除を手動実行
+# 定期削除の手動実行（アプリと同じ easyshare ユーザーで）
+sudo -u easyshare bash -c 'cd /opt/easy-sharing && .venv/bin/python cleanup.py'
 ```
 
 ## 開発ルール
@@ -87,8 +89,8 @@ deploy/           # systemd unit, nginx conf, deploy.sh, crontab
 **時刻は DB が UTC、表示と cron が Asia/Tokyo。** `db.to_db()` / `db.from_db()` を通すこと。
 
 **ファイル検証は3点一致。** 拡張子・Content-Type・先頭バイトのシグネチャがすべて
-一致した場合のみ受け付ける（`validation.validate_upload`）。1つでも欠けると
-PHP を .jpg に改名したファイルが通る。
+一致した場合のみ受け付ける（`validation.validate_upload`）。Content-Type は空でも
+不一致として拒否する（指摘#7）。1つでも欠けると PHP を .jpg に改名したファイルが通る。
 
 **物理削除は最大24時間遅れる。** 受け取り可能なのは12時間だが、物理削除は期限後の
 次回定期処理（0時 or 12時）。画面で「12時間後に完全削除」とは書かないこと（仕様 9.2）。
@@ -97,7 +99,7 @@ PHP を .jpg に改名したファイルが通る。
 
 ## 環境変数（`.env`、git 管理外）
 
-`.env.example` をコピーして使う。VPS では `/root/easy-sharing/.env`。
+`.env.example` をコピーして使う。VPS では `/opt/easy-sharing/.env`（640・root:easyshare）。
 
 | 変数名 | 用途 |
 |---|---|
@@ -121,6 +123,26 @@ PHP を .jpg に改名したファイルが通る。
   `logger` に渡してよいのは内部ID・種別・サイズ・期限・エラーコードまで。
 - 匿名アップロードを許可しているので、公開後は容量・アップロード件数・エラー率を確認する。
   必要なら CAPTCHA／サイト共通の利用コード／ウイルススキャンを追加する（仕様 13.4）。
+
+### 多層防御（コードレビュー #1〜#8 対応。#4 は未対応）
+
+- **アップロードDoS対策（#1）**: nginx は `proxy_request_buffering on`（off にすると
+  同期ワーカーが低速アップロードに占有される）。`conf.d/easy-sharing-limits.conf` で
+  limit_conn/limit_req ゾーンを定義し、サイト側で同時接続10・2r/s に制限。
+  gunicorn は `-w 3 --timeout 60`。
+- **非root実行（#2）**: 上記のとおり easyshare + ProtectSystem=strict。
+- **受け取り認可の破棄（#3）**: `/receive`（GET/POST）の入口で `clear_receive_session()`。
+  検索に失敗しても過去の受け取り結果を再表示できない。
+- **容量・レート制限の原子化（#5）**: 確定判定は `db.immediate()`（BEGIN IMMEDIATE）内で
+  「COUNT→挿入→記録」をまとめて実行。早期チェックは高速な門前払い用。
+- **削除の状態遷移（#6）**: 任意削除は delete_pending へ遷移 → ファイル削除 → レコード削除の順。
+  途中で落ちても active のまま実体が消えることはない。孤立ファイルは cleanup.py が
+  `_sweep_orphans()` で回収（作成1時間以内のものは対象外）。
+- **ファイル検証（#7）**: 拡張子・Content-Type・シグネチャの3点一致。Content-Type が
+  空でも不一致として拒否する。
+- **秘密鍵の強度（#8）**: SECRET_KEY / KEY_HMAC_SECRET とも32文字以上を起動時に検証。
+- **未対応（#4）**: 共有完了画面の平文キー・プレビューは署名付き Cookie に保持している。
+  仕様10.2「共有キー平文をサーバー・DBに保存しない」を守るための意図的なトレードオフ。
 
 ## 仕様書からの実装判断（仕様18章「実装前に環境で確定する項目」）
 

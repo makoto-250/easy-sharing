@@ -138,6 +138,17 @@ def clear_receive_session():
     session.pop("receive", None)
 
 
+def _cleanup_orphan(record):
+    """DB 登録前に保存したファイルを回収する。削除に失敗したら記録に残す。
+
+    ここで消し損ねてもファイルは DB のどのレコードからも参照されない孤立状態で、
+    cleanup.py の孤立ファイル掃除が最終的に回収する（指摘#6）。
+    """
+    name = record.get("storage_name")
+    if name and not storage.remove(name):
+        logger.error("孤立ファイルの回収に失敗しました name=%s", name)
+
+
 # --- S-01 共有する --------------------------------------------------------
 
 
@@ -218,19 +229,7 @@ def share_create():
         except validation.FileRejected as exc:
             return fail({exc.field: exc.message})
 
-        with db.session() as conn:
-            used = db.total_stored_bytes(conn)
-        limit = config.TOTAL_STORAGE_LIMIT * config.STORAGE_WARN_RATIO
-        if used + size > limit:
-            # 上限の90%到達で新規ファイル共有を停止し、管理者へ通知する（仕様 13.3）。
-            logger.error(
-                "保存容量が上限の%.0f%%に達しました used=%d limit=%d",
-                config.STORAGE_WARN_RATIO * 100,
-                used,
-                config.TOTAL_STORAGE_LIMIT,
-            )
-            return fail({"general": ERR_STORAGE_FULL}, 507)
-
+        # 容量の確定判定は下の書き込みロック内で行う（すり抜け対策 / 指摘#5）。
         record["storage_name"] = storage.new_storage_name()
         record["original_name"] = validation.sanitize_original_name(upload.filename)
         record["mime_type"] = mime_type
@@ -255,16 +254,35 @@ def share_create():
             logger.exception("ファイルの保存に失敗しました id=%s", record["id"])
             return fail({"general": ERR_INTERNAL}, 500)
 
+    # レート制限・容量制限の確認と、レコード挿入・記録を1つの書き込みロック内で
+    # まとめて行う。上の早期チェックは高速な門前払い用で、ここが確定判定になる
+    # （2ワーカーが同時に制限すり抜けするのを防ぐ / 指摘#5）。
     try:
-        with db.session() as conn:
+        with db.immediate() as conn:
+            if not ratelimit.check_share(conn, who):
+                _cleanup_orphan(record)
+                return fail({"general": ERR_RATE_LIMIT}, 429)
+            if upload is not None:
+                used = db.total_stored_bytes(conn)
+                if used + record["file_size"] > (
+                    config.TOTAL_STORAGE_LIMIT * config.STORAGE_WARN_RATIO
+                ):
+                    _cleanup_orphan(record)
+                    logger.error(
+                        "保存容量が上限の%.0f%%に達しました used=%d limit=%d",
+                        config.STORAGE_WARN_RATIO * 100,
+                        used,
+                        config.TOTAL_STORAGE_LIMIT,
+                    )
+                    return fail({"general": ERR_STORAGE_FULL}, 507)
             db.insert_share(conn, record)
             ratelimit.record_share(conn, who)
     except sqlite3.IntegrityError:
         # 手入力キーの重複はエラーとして返す（仕様 4.3）。
-        storage.remove(record["storage_name"])
+        _cleanup_orphan(record)
         return fail({"share_key": ERR_KEY_TAKEN})
     except sqlite3.Error:
-        storage.remove(record["storage_name"])
+        _cleanup_orphan(record)
         logger.exception("共有レコードの保存に失敗しました id=%s", record["id"])
         return fail({"general": ERR_INTERNAL}, 500)
 
@@ -311,6 +329,10 @@ def share_done():
 @app.get("/receive")
 def receive_form():
     clear_share_completion()
+    # 受け取りフォームに戻ってきた時点で、過去の受け取り認可を破棄する。
+    # これがないと、別のキーで検索に失敗しても直接 /receive/result を開いて
+    # 前回のデータを再表示できてしまう（共用端末での意図しない閲覧）。
+    clear_receive_session()
     return render_template("receive.html", error=None, share_key="")
 
 
@@ -318,6 +340,9 @@ def receive_form():
 def receive_lookup():
     require_csrf()
     clear_share_completion()
+    # 新しい検索を始める前に、前回の受け取り認可を必ず捨てる。
+    # 検索が失敗して終わっても古い認可が残らないようにする。
+    clear_receive_session()
 
     who = client_id()
     share_key = validation.normalize_share_key(request.form.get("share_key"))
@@ -441,14 +466,15 @@ def receive_delete():
             return page, 404
         share_id = row["id"]
         storage_name = row["storage_name"]
+        # 先に受け取り不可（delete_pending）へ遷移させてから物理削除する。
+        # この順にすると、ファイル削除後にDBが落ちても「active なのに実体がない」
+        # 状態にはならず、cleanup.py が確実に後始末できる（仕様 8.3）。
+        db.mark_delete_pending(conn, share_id)
 
     removed = storage.remove(storage_name)
-    with db.session() as conn:
-        if removed:
+    if removed:
+        with db.session() as conn:
             db.delete_share(conn, share_id)
-        else:
-            # 削除待ちにして定期削除処理で再試行する（仕様 8.3）。
-            db.mark_delete_pending(conn, share_id)
 
     logger.info("任意削除を実行しました id=%s file_removed=%s", share_id, removed)
     clear_receive_session()

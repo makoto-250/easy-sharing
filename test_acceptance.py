@@ -17,7 +17,7 @@ _TMP = Path(tempfile.mkdtemp(prefix="easy-sharing-test-"))
 os.environ["DATABASE_PATH"] = str(_TMP / "test.db")
 os.environ["UPLOAD_STORAGE_PATH"] = str(_TMP / "uploads")
 os.environ["KEY_HMAC_SECRET"] = "test-hmac-secret-value-32-characters-long"
-os.environ["SECRET_KEY"] = "test-flask-secret"
+os.environ["SECRET_KEY"] = "test-flask-secret-value-32-characters-long"
 os.environ["FLASK_ENV"] = "development"
 
 import app as app_module  # noqa: E402
@@ -535,3 +535,106 @@ def test_receive_session_expires(client):
         sess["receive"]["issued_at"] = db.to_db(stale)
     assert client.get("/receive/result").status_code == 404
     assert client.get("/receive/download").status_code == 404
+
+
+# --- コードレビュー指摘への対応（リグレッション防止）----------------------
+
+
+def test_review3_stale_receive_authorization_is_dropped(client):
+    """指摘#3 過去の受け取り認可が次の検索失敗後に残らない。"""
+    share_text(client, text="共有Aの内容")
+    receive(client)  # 共有Aを受け取り、認可を得る
+    assert "共有Aの内容" in body(client.get("/receive/result"))
+
+    # 別のキーで検索に失敗する
+    assert app_module.ERR_NOT_FOUND in body(receive(client, "ZzZzZzZz00000000"))
+    # 失敗後は直接 result を開いても A を再表示できない
+    assert client.get("/receive/result").status_code == 404
+
+
+def test_review3_receive_form_clears_authorization(client):
+    """指摘#3 受け取りフォームに戻ると過去の認可が破棄される。"""
+    share_text(client, text="共有Aの内容")
+    receive(client)
+    assert "共有Aの内容" in body(client.get("/receive/result"))
+    client.get("/receive")  # フォームに戻る
+    assert client.get("/receive/result").status_code == 404
+
+
+def test_review7_missing_content_type_is_rejected(client):
+    """指摘#7 Content-Type が空のアップロードは受理しない。"""
+    page = body(share_file(client, "sample.png", PNG, ""))
+    assert "このファイル形式には対応していません。" in page
+    with db.session() as conn:
+        assert conn.execute("SELECT COUNT(*) c FROM shares").fetchone()["c"] == 0
+
+
+def test_review7_correct_content_type_still_accepted(client):
+    """指摘#7 正しい Content-Type 付きは従来どおり受理する。"""
+    assert "共有しました" in body(share_file(client, "sample.png", PNG, "image/png"))
+
+
+def test_review8_short_secret_key_is_rejected():
+    """指摘#8 短い SECRET_KEY では起動時に弾かれる。"""
+    import config
+
+    original = config.SECRET_KEY
+    try:
+        config.SECRET_KEY = "short"
+        with pytest.raises(config.ConfigError):
+            config.validate()
+    finally:
+        config.SECRET_KEY = original
+    # 正常値では通る
+    config.validate()
+
+
+def test_review6_delete_transitions_pending_before_removal(client, monkeypatch):
+    """指摘#6 ファイル削除に失敗しても active のまま残らず delete_pending になる。"""
+    share_file(client, "sample.png", PNG, "image/png")
+    receive(client)
+
+    # 物理削除が失敗する状況を再現する
+    monkeypatch.setattr(app_module.storage, "remove", lambda name: False)
+    page = client.post(
+        "/receive/delete", data={"csrf_token": csrf(client)}, follow_redirects=True
+    )
+    assert page.status_code == 200
+    with db.session() as conn:
+        row = conn.execute("SELECT status FROM shares").fetchone()
+    # レコードは残るが status は delete_pending（＝受け取り不可）
+    assert row["status"] == "delete_pending"
+    assert app_module.ERR_NOT_FOUND in body(receive(client))
+
+
+def test_review6_cleanup_sweeps_orphan_files(client):
+    """指摘#6 どのレコードからも参照されない古い保存ファイルを cleanup が回収する。"""
+    import time
+
+    import cleanup
+    import config
+    import storage
+
+    storage.ensure_storage_dir()
+    orphan = storage.new_storage_name()
+    storage.path_for(orphan).write_bytes(PNG)
+    # 1時間より前に作られたことにする
+    old = time.time() - 7200
+    os.utime(storage.path_for(orphan), (old, old))
+    assert storage.path_for(orphan).exists()
+
+    cleanup.run()
+    assert not storage.path_for(orphan).exists()
+
+
+def test_review6_cleanup_keeps_recent_unreferenced_file(client):
+    """指摘#6 作成直後（1時間以内）の未参照ファイルは誤って消さない。"""
+    import cleanup
+    import storage
+
+    storage.ensure_storage_dir()
+    fresh = storage.new_storage_name()
+    storage.path_for(fresh).write_bytes(PNG)  # mtime は現在時刻
+    cleanup.run()
+    assert storage.path_for(fresh).exists()
+    storage.remove(fresh)  # 後片付け

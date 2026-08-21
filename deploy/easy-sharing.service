@@ -3,12 +3,26 @@ Description=easy-sharing (gunicorn)
 After=network.target
 
 [Service]
-User=root
-WorkingDirectory=/root/easy-sharing
-Environment="PATH=/root/easy-sharing/.venv/bin"
-ExecStart=/root/easy-sharing/.venv/bin/gunicorn -w 2 -b 127.0.0.1:5040 --timeout 120 app:app
+# 専用の非rootユーザーで動かす。アプリや依存の脆弱性が OS 全体へ波及しないように
+# する（指摘#2）。コードは読み取りのみ、書き込めるのは保存領域だけに絞る。
+User=easyshare
+Group=easyshare
+WorkingDirectory=/opt/easy-sharing
+Environment="PATH=/opt/easy-sharing/.venv/bin"
+ExecStart=/opt/easy-sharing/.venv/bin/gunicorn -w 3 -b 127.0.0.1:5040 --timeout 60 --graceful-timeout 30 app:app
 Restart=always
 RestartSec=2
+
+# --- サンドボックス ---
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# 書き込みを許すのは DB・アップロード保存領域だけ（WALの -wal/-shm もここに作られる）。
+ReadWritePaths=/var/lib/easy-sharing
 
 [Install]
 WantedBy=multi-user.target

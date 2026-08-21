@@ -5,6 +5,7 @@
 """
 import logging
 import sys
+import time
 
 import config
 import db
@@ -41,18 +42,49 @@ def run() -> int:
             failed += 1
             logger.error("物理削除に失敗しました id=%s", row["id"])
 
+    orphans = _sweep_orphans()
+
     with db.session() as conn:
         purged = db.purge_old_rate_events(conn, now)
     db.vacuum()
 
     logger.info(
-        "定期削除を完了しました 対象=%d 成功=%d 失敗=%d レート記録削除=%d",
+        "定期削除を完了しました 対象=%d 成功=%d 失敗=%d 孤立ファイル削除=%d レート記録削除=%d",
         total,
         succeeded,
         failed,
+        orphans,
         purged,
     )
     return 1 if failed else 0
+
+
+def _sweep_orphans() -> int:
+    """どのレコードからも参照されない保存ファイルを削除する（指摘#6）。
+
+    共有作成の途中でDB登録に失敗し、かつファイル回収にも失敗した場合に残る
+    孤立ファイルを回収する。作成直後の一瞬をDB未登録の正常ファイルと誤認
+    しないよう、更新時刻が十分に古いものだけを対象にする。
+    """
+    storage_dir = config.UPLOAD_STORAGE_PATH
+    if not storage_dir.exists():
+        return 0
+    with db.session() as conn:
+        known = {r["storage_name"] for r in conn.execute("SELECT storage_name FROM shares")}
+    cutoff = time.time() - 3600  # 1時間より古いものだけ
+    removed = 0
+    for path in storage_dir.iterdir():
+        if not path.is_file() or path.name in known:
+            continue
+        try:
+            if path.stat().st_mtime >= cutoff:
+                continue
+        except OSError:
+            continue
+        if storage.remove(path.name):
+            removed += 1
+            logger.error("孤立ファイルを削除しました name=%s", path.name)
+    return removed
 
 
 if __name__ == "__main__":
