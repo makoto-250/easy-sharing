@@ -1,18 +1,38 @@
 :root {
-  --bg: #f4f6f9;
+  /* 背景は少しだけ青みのあるオフホワイト */
+  --bg: #f2f7fb;
   --surface: #ffffff;
-  --border: #d5dbe3;
-  --text: #1d2530;
-  --muted: #5d6b7d;
-  --accent: #1f6feb;
-  --accent-dark: #1657bd;
-  --danger: #b32d2e;
-  --danger-dark: #8f2223;
-  --ok-bg: #e8f4ec;
-  --ok-border: #99c9ad;
-  --error-bg: #fdecec;
-  --error-border: #e5a3a3;
-  --radius: 8px;
+  --surface-soft: #f7fafd;
+  --border: #dfe8f1;
+  --text: #263544;
+  --muted: #6b7c8f;
+
+  /* アクセントは青緑と淡いブルー */
+  --accent: #17a2a8;
+  --accent-dark: #12868b;
+  --accent-soft: #e3f5f6;
+  --blue-soft: #e9f2fb;
+
+  --danger: #c85b57;
+  --danger-dark: #a8433f;
+
+  --ok-bg: #e6f5f3;
+  --ok-border: #a9ddd4;
+  --error-bg: #fdeeed;
+  --error-border: #f0c0bd;
+
+  /* 注意書き用の淡い黄色 */
+  --warn-bg: #fdf8e6;
+  --warn-border: #ecdfb4;
+  --warn-text: #6d5c2e;
+
+  /* 角丸は大きめに */
+  --radius: 18px;
+  --radius-sm: 12px;
+  --radius-pill: 999px;
+
+  --shadow: 0 1px 2px rgba(38, 53, 68, 0.04), 0 10px 28px rgba(38, 53, 68, 0.06);
+  --shadow-sm: 0 1px 2px rgba(38, 53, 68, 0.05);
 }
 
 * {
@@ -30,49 +50,57 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans",
     "Noto Sans JP", "Yu Gothic UI", sans-serif;
   font-size: 16px;
-  line-height: 1.7;
+  line-height: 1.8;
   overflow-wrap: break-word;
 }
 
 /* --- ヘッダー / タブ ------------------------------------------------- */
 
 .site-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 16px 16px 0;
+  padding: 24px 16px 0;
 }
 
 .site-title {
-  margin: 0 0 12px;
-  font-size: 1.05rem;
+  margin: 0 0 16px;
+  font-size: 1.1rem;
   font-weight: 700;
   text-align: center;
+  color: var(--accent-dark);
+  letter-spacing: 0.02em;
 }
 
+/* 丸みのあるセグメント切り替え */
 .tabs {
   display: flex;
   gap: 4px;
   max-width: 680px;
   margin: 0 auto;
+  padding: 5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
 }
 
 .tab {
   flex: 1;
-  padding: 12px 8px;
+  padding: 10px 8px;
   text-align: center;
   text-decoration: none;
   color: var(--muted);
   font-weight: 600;
-  border-bottom: 3px solid transparent;
+  border-radius: var(--radius-pill);
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .tab.is-active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
 }
 
-.tab:hover {
-  background: #eef2f7;
+.tab:hover:not(.is-active) {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
 }
 
 /* --- レイアウト ------------------------------------------------------ */
@@ -83,15 +111,34 @@ body {
   padding: 24px 16px 48px;
 }
 
+/* カード */
+.card {
+  padding: 24px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
 .page-title {
-  font-size: 1.35rem;
-  margin: 0 0 20px;
+  font-size: 1.3rem;
+  margin: 0 0 6px;
+}
+
+.lead {
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: 0.92rem;
 }
 
 .field {
   margin: 0 0 24px;
   border: 0;
   padding: 0;
+}
+
+.field:last-child {
+  margin-bottom: 0;
 }
 
 .label {
@@ -121,9 +168,10 @@ body {
 }
 
 .help {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   font-size: 0.85rem;
   color: var(--muted);
+  line-height: 1.7;
 }
 
 .muted {
@@ -136,27 +184,34 @@ body {
 input[type="text"],
 textarea {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
   color: var(--text);
   font-size: 1rem;
   font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+input[type="text"]:focus,
+textarea:focus {
+  background: var(--surface);
+  border-color: var(--accent);
 }
 
 textarea {
   resize: vertical;
   min-height: 160px;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 input[type="file"] {
   width: 100%;
-  padding: 10px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+  padding: 16px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
   font-size: 0.95rem;
 }
 
@@ -170,20 +225,42 @@ textarea:focus-visible,
 
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
 
 .radio-row {
   display: flex;
-  gap: 20px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
+/* 選べるカードのような見た目のラジオ */
 .radio {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  flex: 1 1 140px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-soft);
   cursor: pointer;
+  font-weight: 600;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.radio:hover {
+  background: var(--accent-soft);
+}
+
+.radio:has(input:checked) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.radio input {
+  accent-color: var(--accent);
 }
 
 .key-row {
@@ -204,21 +281,23 @@ textarea:focus-visible,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 20px;
+  padding: 13px 22px;
   border: 1px solid transparent;
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
   font-size: 1rem;
   font-family: inherit;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-primary {
   background: var(--accent);
   color: #fff;
   width: 100%;
+  box-shadow: 0 2px 8px rgba(23, 162, 168, 0.25);
 }
 
 .btn-primary:hover {
@@ -232,7 +311,9 @@ textarea:focus-visible,
 }
 
 .btn-sub:hover {
-  background: #eef2f7;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-dark);
 }
 
 .btn-danger {
@@ -244,11 +325,12 @@ textarea:focus-visible,
 
 .btn-danger:hover {
   background: var(--danger-dark);
+  border-color: var(--danger-dark);
   color: #fff;
 }
 
 .btn-small {
-  padding: 6px 14px;
+  padding: 7px 16px;
   font-size: 0.85rem;
 }
 
@@ -262,7 +344,7 @@ textarea:focus-visible,
   flex-direction: column;
   justify-content: center;
   gap: 12px;
-  margin: 24px 0;
+  margin: 24px 0 0;
 }
 
 .actions .btn {
@@ -272,9 +354,65 @@ textarea:focus-visible,
 .delete-form {
   display: flex;
   justify-content: center;
-  margin-top: 32px;
+  margin-top: 28px;
   padding-top: 24px;
   border-top: 1px solid var(--border);
+}
+
+/* --- 完了表示（チェックアイコン）------------------------------------- */
+
+.done-head {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.done-icon {
+  width: 88px;
+  height: 88px;
+  margin: 4px auto 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  animation: pop 0.35s ease-out both;
+}
+
+.done-icon svg {
+  width: 44px;
+  height: 44px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.done-head .page-title {
+  margin: 0 0 6px;
+}
+
+.done-lead {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .done-icon {
+    animation: none;
+  }
 }
 
 /* --- 通知 ------------------------------------------------------------ */
@@ -282,8 +420,8 @@ textarea:focus-visible,
 .alert,
 .notice {
   margin: 0 0 20px;
-  padding: 12px 14px;
-  border-radius: var(--radius);
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
   border: 1px solid;
   font-size: 0.95rem;
 }
@@ -300,7 +438,7 @@ textarea:focus-visible,
 }
 
 .error {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   color: var(--danger-dark);
   font-size: 0.88rem;
 }
@@ -310,10 +448,10 @@ textarea:focus-visible,
 .preview,
 .received-text {
   margin: 0;
-  padding: 12px 14px;
-  background: var(--surface);
+  padding: 14px 16px;
+  background: var(--surface-soft);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   font-family: inherit;
   font-size: 0.95rem;
   /* 改行と連続空白を保持する（仕様 7.2）。 */
@@ -327,42 +465,66 @@ textarea:focus-visible,
   overflow-y: auto;
 }
 
+/* ファイル情報をまとめる淡いブルーのボックス */
+.file-box {
+  padding: 16px 18px;
+  background: var(--blue-soft);
+  border-radius: var(--radius-sm);
+}
+
+.file-box .value {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.file-box .help {
+  margin-top: 4px;
+}
+
 /* --- 注意書き / フッター ---------------------------------------------- */
 
+/* 注意書きは淡い黄色のボックスにまとめる */
 .notes {
-  margin-top: 40px;
-  padding: 16px 18px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  margin-top: 24px;
+  padding: 18px 20px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
   border-radius: var(--radius);
+  color: var(--warn-text);
 }
 
 .notes h2 {
-  margin: 0 0 8px;
-  font-size: 1rem;
+  margin: 0 0 10px;
+  font-size: 0.95rem;
 }
 
 .notes ul {
   margin: 0;
   padding-left: 1.2em;
-  font-size: 0.88rem;
-  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.8;
 }
 
 .notes li + li {
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .site-footer {
-  padding: 20px 16px 32px;
-  text-align: center;
-  font-size: 0.8rem;
-  color: var(--muted);
+  padding: 0 16px 40px;
 }
 
+/* フッターの注意はグレーのボックス */
 .site-footer p {
   max-width: 680px;
   margin: 0 auto;
+  padding: 12px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  font-size: 0.8rem;
+  line-height: 1.7;
+  color: var(--muted);
 }
 
 /* --- トースト -------------------------------------------------------- */
@@ -372,9 +534,9 @@ textarea:focus-visible,
   left: 50%;
   bottom: 24px;
   transform: translateX(-50%);
-  padding: 10px 18px;
-  border-radius: 999px;
-  background: rgba(29, 37, 48, 0.92);
+  padding: 11px 20px;
+  border-radius: var(--radius-pill);
+  background: rgba(38, 53, 68, 0.92);
   color: #fff;
   font-size: 0.9rem;
   opacity: 0;
@@ -391,6 +553,10 @@ textarea:focus-visible,
 /* --- 画面幅 ---------------------------------------------------------- */
 
 @media (min-width: 560px) {
+  .card {
+    padding: 32px 28px;
+  }
+
   /* PC では全幅に広げず、文言に応じた幅にする。
      スマートフォン幅では押しやすさを優先して全幅のまま。 */
   .btn-primary,

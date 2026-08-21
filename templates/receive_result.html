@@ -3,32 +3,36 @@
 {% block title %}受け取り結果 — {{ service_name }}{% endblock %}
 
 {% block content %}
-<h1 class="page-title">受け取り結果</h1>
-<p class="help">受け取り期限: {{ expires_text }}<span class="muted">（{{ remaining }}）</span></p>
+<div class="card">
+  <h1 class="page-title">受け取り結果</h1>
+  <p class="lead">受け取り期限: {{ expires_text }}<span class="muted">（{{ remaining }}）</span></p>
 
-{% if data_type == 'text' %}
-<div class="field">
-  <div class="field-head">
-    <p class="label">テキスト</p>
-    <button type="button" class="btn btn-sub btn-small"
-            data-copy-target="#received-text">コピー</button>
+  {% if data_type == 'text' %}
+  <div class="field">
+    <div class="field-head">
+      <p class="label">テキスト</p>
+      <button type="button" class="btn btn-sub btn-small"
+              data-copy-target="#received-text">コピー</button>
+    </div>
+    <pre class="received-text" id="received-text">{{ text_body }}</pre>
   </div>
-  <pre class="received-text" id="received-text">{{ text_body }}</pre>
-</div>
-{% else %}
-<div class="field">
-  <p class="label">ファイル</p>
-  <p class="value">{{ file_name }}</p>
-  <p class="help">{{ file_format }} / {{ file_size }}</p>
-</div>
-<div class="actions">
-  <a class="btn btn-primary" href="{{ url_for('receive_download') }}">ダウンロード</a>
-</div>
-{% endif %}
+  {% else %}
+  <div class="field">
+    <p class="label">ファイル</p>
+    <div class="file-box">
+      <p class="value">{{ file_name }}</p>
+      <p class="help">{{ file_format }} / {{ file_size }}</p>
+    </div>
+  </div>
+  <div class="actions">
+    <a class="btn btn-primary" href="{{ url_for('receive_download') }}">ダウンロード</a>
+  </div>
+  {% endif %}
 
-<form method="post" action="{{ url_for('receive_delete') }}" class="delete-form"
-      data-confirm="このデータを完全に削除します。削除後は元に戻せません。">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-  <button type="submit" class="btn btn-danger">このデータを削除する</button>
-</form>
+  <form method="post" action="{{ url_for('receive_delete') }}" class="delete-form"
+        data-confirm="このデータを完全に削除します。削除後は元に戻せません。">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit" class="btn btn-danger">このデータを削除する</button>
+  </form>
+</div>
 {% endblock %}

@@ -3,36 +3,45 @@
 {% block title %}共有しました — {{ service_name }}{% endblock %}
 
 {% block content %}
-<h1 class="page-title">共有しました</h1>
-<p class="notice notice-ok">この共有キーを相手に伝えてください。</p>
-
-<div class="field">
-  <div class="field-head">
-    <p class="label">共有キー</p>
-    <button type="button" class="btn btn-sub btn-small"
-            data-copy-target="#share-key-value">コピー</button>
+<div class="card">
+  <div class="done-head">
+    <div class="done-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" role="presentation"><path d="M20 6.5 9.2 17.3 4 12.1"/></svg>
+    </div>
+    <h1 class="page-title">共有しました</h1>
+    <p class="done-lead">下の共有キーを、受け取る人に伝えてください。</p>
   </div>
-  <input type="text" id="share-key-value" class="mono" value="{{ share_key }}" readonly>
-  <p class="help">共有キーはこの画面でのみ確認できます。画面を離れると再表示できません。</p>
-</div>
 
-<div class="field">
-  <p class="label">受け取り期限</p>
-  <p class="value">{{ expires_text }}<span class="muted">（{{ remaining }}）</span></p>
-</div>
+  <div class="field">
+    <div class="field-head">
+      <p class="label">共有キー</p>
+      <button type="button" class="btn btn-sub btn-small"
+              data-copy-target="#share-key-value">コピー</button>
+    </div>
+    <input type="text" id="share-key-value" class="mono" value="{{ share_key }}" readonly>
+    <p class="help">共有キーはこの画面でのみ確認できます。画面を離れると再表示できません。</p>
+  </div>
 
-<div class="field">
-  <p class="label">共有した内容</p>
-  {% if preview.kind == 'text' %}
-  <pre class="preview">{{ preview.text }}{% if preview.truncated %}…{% endif %}</pre>
-  {% else %}
-  <p class="value">{{ preview.name }}</p>
-  <p class="help">{{ preview.format }} / {{ preview.size }}</p>
-  {% endif %}
-</div>
+  <div class="field">
+    <p class="label">受け取り期限</p>
+    <p class="value">{{ expires_text }}<span class="muted">（{{ remaining }}）</span></p>
+  </div>
 
-<div class="actions">
-  <a class="btn btn-primary" href="{{ url_for('receive_form') }}">受け取り画面へ</a>
-  <a class="btn btn-sub" href="{{ url_for('share_form') }}">続けて共有する</a>
+  <div class="field">
+    <p class="label">共有した内容</p>
+    {% if preview.kind == 'text' %}
+    <pre class="preview">{{ preview.text }}{% if preview.truncated %}…{% endif %}</pre>
+    {% else %}
+    <div class="file-box">
+      <p class="value">{{ preview.name }}</p>
+      <p class="help">{{ preview.format }} / {{ preview.size }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="actions">
+    <a class="btn btn-primary" href="{{ url_for('receive_form') }}">受け取り画面へ</a>
+    <a class="btn btn-sub" href="{{ url_for('share_form') }}">続けて共有する</a>
+  </div>
 </div>
 {% endblock %}

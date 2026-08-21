@@ -3,10 +3,18 @@
 {% block title %}削除しました — {{ service_name }}{% endblock %}
 
 {% block content %}
-<h1 class="page-title">データを削除しました</h1>
-<p class="notice notice-ok">データを削除しました。この共有キーでは受け取れません。</p>
-<div class="actions">
-  <a class="btn btn-primary" href="{{ url_for('share_form') }}">共有する</a>
-  <a class="btn btn-sub" href="{{ url_for('receive_form') }}">受け取る</a>
+<div class="card">
+  <div class="done-head">
+    <div class="done-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" role="presentation"><path d="M20 6.5 9.2 17.3 4 12.1"/></svg>
+    </div>
+    <h1 class="page-title">データを削除しました</h1>
+    <p class="done-lead">この共有キーでは受け取れなくなりました。</p>
+  </div>
+
+  <div class="actions">
+    <a class="btn btn-primary" href="{{ url_for('share_form') }}">共有する</a>
+    <a class="btn btn-sub" href="{{ url_for('receive_form') }}">受け取る</a>
+  </div>
 </div>
 {% endblock %}
