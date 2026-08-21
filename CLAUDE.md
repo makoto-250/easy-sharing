@@ -128,7 +128,7 @@ PHP を .jpg に改名したファイルが通る。
 
 | 項目 | 現在の設定 | 備考 |
 |---|---|---|
-| サービス名 | かんたん共有 | `SERVICE_NAME` で変更可 |
+| サービス名 | Easy Sharing | `SERVICE_NAME` で変更可 |
 | ドメイン | easy.ai-web-support.com | |
 | 配色・ロゴ | 青系のミニマル、ロゴなし | `static/style.css` の `:root` 変数 |
 | TOTAL_STORAGE_LIMIT | 5 GiB | ディスク残 45GB に対して余裕をみた値 |

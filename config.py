@@ -56,7 +56,7 @@ RATE_RECEIVE_BLOCK_MINUTES = _int("RATE_RECEIVE_BLOCK_MINUTES", 15)
 RATE_DOWNLOAD_PER_HOUR = _int("RATE_DOWNLOAD_PER_HOUR", 60)
 
 # --- 表示 -----------------------------------------------------------------
-SERVICE_NAME = os.environ.get("SERVICE_NAME", "かんたん共有")
+SERVICE_NAME = os.environ.get("SERVICE_NAME", "Easy Sharing")
 DISPLAY_TIMEZONE = "Asia/Tokyo"
 
 # --- 動作環境 -------------------------------------------------------------
