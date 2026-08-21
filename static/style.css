@@ -260,6 +260,7 @@ textarea:focus-visible,
 .actions {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 12px;
   margin: 24px 0;
 }
@@ -269,6 +270,8 @@ textarea:focus-visible,
 }
 
 .delete-form {
+  display: flex;
+  justify-content: center;
   margin-top: 32px;
   padding-top: 24px;
   border-top: 1px solid var(--border);
