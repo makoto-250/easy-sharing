@@ -44,7 +44,7 @@
       <label class="label" for="file">ファイル</label>
       <input type="file" id="file" name="file"
              accept=".pdf,.gif,.jpg,.jpeg,.png,.webp">
-      <p class="help">PDF・GIF・JPEG・PNG・WebP の1ファイル、20 MiB まで</p>
+      <p class="help">PDF・GIF・JPEG・PNG・WebP の1ファイル、20 MB まで</p>
       <p class="help" id="file-info" hidden></p>
       {% if errors.file %}<p class="error" role="alert">{{ errors.file }}</p>{% endif %}
     </div>
@@ -75,7 +75,7 @@
     <li>データの受け取り期限は、共有してから{{ ttl_hours }}時間です。期限終了後は受け取りできなくなり、次回の定期削除処理でサーバーから完全に削除されます。定期削除処理は1日2回実施します。</li>
     <li>本サービスは簡易的なデータ共有サービスです。機密情報、個人情報、流出すると問題になる情報には使用しないでください。</li>
     <li>共有キーを知っている人は、データの受け取りおよび削除ができます。共有キーの取り扱いにはご注意ください。</li>
-    <li>対応ファイルはPDF、GIF、JPEG、PNG、WebPです。1ファイルあたりの上限は20 MiBです。</li>
+    <li>対応ファイルはPDF、GIF、JPEG、PNG、WebPです。1ファイルあたりの上限は20 MBです。</li>
     <li>複数ファイル、ZIPなどの圧縮ファイル、プログラムファイルには対応していません。</li>
     <li>受け取り後、不要になったデータは「このデータを削除する」からすぐに削除できます。</li>
   </ul>

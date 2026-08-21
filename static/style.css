@@ -41,6 +41,9 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* 画面ごとの高さの違いでスクロールバーが出たり消えたりすると、
+     中央寄せのコンテンツが左右にずれる。常に領域を確保して止める。 */
+  scrollbar-gutter: stable;
 }
 
 body {
