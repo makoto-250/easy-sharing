@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}エラー — {{ service_name }}{% endblock %}
+
+{% block content %}
+<h1 class="page-title">エラー</h1>
+<p class="alert" role="alert">{{ message }}</p>
+<div class="actions">
+  <a class="btn btn-primary" href="{{ url_for('share_form') }}">最初の画面へ</a>
+</div>
+{% endblock %}

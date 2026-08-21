@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% set active_tab = 'share' %}
+{% block title %}共有する — {{ service_name }}{% endblock %}
+
+{% block content %}
+<h1 class="page-title">共有する</h1>
+
+{% if errors.general %}
+<p class="alert" role="alert">{{ errors.general }}</p>
+{% endif %}
+
+<form method="post" action="{{ url_for('share_create') }}" enctype="multipart/form-data"
+      id="share-form" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+  <fieldset class="field">
+    <legend class="label">共有する形式</legend>
+    <div class="radio-row">
+      <label class="radio">
+        <input type="radio" name="data_type" value="text" data-mode="text"
+               {% if form.data_type != 'file' %}checked{% endif %}>
+        <span>テキスト</span>
+      </label>
+      <label class="radio">
+        <input type="radio" name="data_type" value="file" data-mode="file"
+               {% if form.data_type == 'file' %}checked{% endif %}>
+        <span>ファイル</span>
+      </label>
+    </div>
+  </fieldset>
+
+  <div class="field" id="pane-text" {% if form.data_type == 'file' %}hidden{% endif %}>
+    <label class="label" for="text_body">テキスト</label>
+    <textarea id="text_body" name="text_body" rows="8"
+              maxlength="{{ max_text_length }}"
+              placeholder="共有したいテキストを入力してください">{{ form.text_body or '' }}</textarea>
+    <p class="help"><span id="text-count">0</span> / {{ "{:,}".format(max_text_length) }} 文字</p>
+    {% if errors.text_body %}<p class="error" role="alert">{{ errors.text_body }}</p>{% endif %}
+  </div>
+
+  <div class="field" id="pane-file" {% if form.data_type != 'file' %}hidden{% endif %}>
+    <label class="label" for="file">ファイル</label>
+    <input type="file" id="file" name="file"
+           accept=".pdf,.gif,.jpg,.jpeg,.png,.webp">
+    <p class="help">PDF・GIF・JPEG・PNG・WebP の1ファイル、20 MiB まで</p>
+    <p class="help" id="file-info" hidden></p>
+    {% if errors.file %}<p class="error" role="alert">{{ errors.file }}</p>{% endif %}
+  </div>
+
+  <div class="field">
+    <label class="label" for="share_key">共有キー</label>
+    <div class="key-row">
+      <input type="text" id="share_key" name="share_key" class="mono"
+             value="{{ form.share_key or '' }}"
+             minlength="16" maxlength="16" autocomplete="off" autocapitalize="off"
+             autocorrect="off" spellcheck="false"
+             inputmode="text" placeholder="16文字の英数字">
+      <button type="button" class="btn btn-sub" id="generate-key">共有キーを自動生成</button>
+    </div>
+    <p class="help">英大文字・英小文字・数字の16文字。大文字と小文字は区別されます。<strong>自動生成を推奨。</strong></p>
+    {% if errors.share_key %}<p class="error" role="alert">{{ errors.share_key }}</p>{% endif %}
+  </div>
+
+  <button type="submit" class="btn btn-primary" id="submit-share">共有する</button>
+</form>
+
+<section class="notes">
+  <h2>ご利用の前に</h2>
+  <ul>
+    <li>データの受け取り期限は、共有してから{{ ttl_hours }}時間です。期限終了後は受け取りできなくなり、次回の定期削除処理でサーバーから完全に削除されます。定期削除処理は1日2回実施します。</li>
+    <li>本サービスは簡易的なデータ共有サービスです。機密情報、個人情報、流出すると問題になる情報には使用しないでください。</li>
+    <li>共有キーを知っている人は、データの受け取りおよび削除ができます。共有キーの取り扱いにはご注意ください。</li>
+    <li>対応ファイルはPDF、GIF、JPEG、PNG、WebPです。1ファイルあたりの上限は20 MiBです。</li>
+    <li>複数ファイル、ZIPなどの圧縮ファイル、プログラムファイルには対応していません。</li>
+    <li>受け取り後、不要になったデータは「このデータを削除する」からすぐに削除できます。</li>
+  </ul>
+</section>
+{% endblock %}

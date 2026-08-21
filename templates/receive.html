@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% set active_tab = 'receive' %}
+{% block title %}受け取る — {{ service_name }}{% endblock %}
+
+{% block content %}
+<h1 class="page-title">受け取る</h1>
+
+{% if error %}
+<p class="alert" role="alert">{{ error }}</p>
+{% endif %}
+
+<form method="post" action="{{ url_for('receive_lookup') }}" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <div class="field">
+    <label class="label" for="share_key">共有キー</label>
+    <input type="text" id="share_key" name="share_key" class="mono"
+           value="{{ share_key }}"
+           minlength="16" maxlength="16" autocomplete="off" autocapitalize="off"
+           autocorrect="off" spellcheck="false" placeholder="16文字の英数字" autofocus>
+    <p class="help">大文字と小文字は区別されます。</p>
+  </div>
+  <button type="submit" class="btn btn-primary">受け取る</button>
+</form>
+{% endblock %}

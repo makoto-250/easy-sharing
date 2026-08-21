@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% set active_tab = 'share' %}
+{% block title %}共有しました — {{ service_name }}{% endblock %}
+
+{% block content %}
+<h1 class="page-title">共有しました</h1>
+<p class="notice notice-ok">この共有キーを相手に伝えてください。</p>
+
+<div class="field">
+  <p class="label">共有キー</p>
+  <div class="key-row">
+    <input type="text" id="share-key-value" class="mono" value="{{ share_key }}" readonly>
+    <button type="button" class="btn btn-sub" data-copy-target="#share-key-value">コピー</button>
+  </div>
+  <p class="help">共有キーはこの画面でのみ確認できます。画面を離れると再表示できません。</p>
+</div>
+
+<div class="field">
+  <p class="label">受け取り期限</p>
+  <p class="value">{{ expires_text }}<span class="muted">（{{ remaining }}）</span></p>
+</div>
+
+<div class="field">
+  <p class="label">共有した内容</p>
+  {% if preview.kind == 'text' %}
+  <pre class="preview">{{ preview.text }}{% if preview.truncated %}…{% endif %}</pre>
+  {% else %}
+  <p class="value">{{ preview.name }}</p>
+  <p class="help">{{ preview.format }} / {{ preview.size }}</p>
+  {% endif %}
+</div>
+
+<div class="actions">
+  <a class="btn btn-primary" href="{{ url_for('receive_form') }}">受け取り画面へ</a>
+  <a class="btn btn-sub" href="{{ url_for('share_form') }}">続けて共有する</a>
+</div>
+{% endblock %}

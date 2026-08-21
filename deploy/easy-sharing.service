@@ -1,0 +1,14 @@
+[Unit]
+Description=easy-sharing (gunicorn)
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/root/easy-sharing
+Environment="PATH=/root/easy-sharing/.venv/bin"
+ExecStart=/root/easy-sharing/.venv/bin/gunicorn -w 2 -b 127.0.0.1:5040 --timeout 120 app:app
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

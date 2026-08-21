@@ -1,0 +1,20 @@
+# 環境変数（秘密鍵を含む。絶対にコミットしない）
+.env
+
+# データ（共有データはバックアップ対象外・git管理外）
+var/
+*.db
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ログ
+*.log
+
+# OS / エディタ
+.DS_Store
+Thumbs.db

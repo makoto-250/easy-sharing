@@ -1,0 +1,381 @@
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --border: #d5dbe3;
+  --text: #1d2530;
+  --muted: #5d6b7d;
+  --accent: #1f6feb;
+  --accent-dark: #1657bd;
+  --danger: #b32d2e;
+  --danger-dark: #8f2223;
+  --ok-bg: #e8f4ec;
+  --ok-border: #99c9ad;
+  --error-bg: #fdecec;
+  --error-border: #e5a3a3;
+  --radius: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans",
+    "Noto Sans JP", "Yu Gothic UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  overflow-wrap: break-word;
+}
+
+/* --- ヘッダー / タブ ------------------------------------------------- */
+
+.site-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 16px 0;
+}
+
+.site-title {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.tab {
+  flex: 1;
+  padding: 12px 8px;
+  text-align: center;
+  text-decoration: none;
+  color: var(--muted);
+  font-weight: 600;
+  border-bottom: 3px solid transparent;
+}
+
+.tab.is-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tab:hover {
+  background: #eef2f7;
+}
+
+/* --- レイアウト ------------------------------------------------------ */
+
+.container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.page-title {
+  font-size: 1.35rem;
+  margin: 0 0 20px;
+}
+
+.field {
+  margin: 0 0 24px;
+  border: 0;
+  padding: 0;
+}
+
+.label {
+  display: block;
+  margin: 0 0 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.value {
+  margin: 0;
+  font-size: 1.05rem;
+  word-break: break-all;
+}
+
+.help {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.muted {
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+/* --- 入力 ------------------------------------------------------------ */
+
+input[type="text"],
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 160px;
+  line-height: 1.6;
+}
+
+input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 0.95rem;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+.btn:focus-visible,
+.tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.06em;
+}
+
+.radio-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.key-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.key-row input[type="text"] {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+/* --- ボタン ---------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  width: 100%;
+}
+
+.btn-primary:hover {
+  background: var(--accent-dark);
+}
+
+.btn-sub {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn-sub:hover {
+  background: #eef2f7;
+}
+
+.btn-danger {
+  background: var(--surface);
+  border-color: var(--danger);
+  color: var(--danger);
+  width: 100%;
+}
+
+.btn-danger:hover {
+  background: var(--danger-dark);
+  color: #fff;
+}
+
+.btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.actions .btn {
+  width: 100%;
+}
+
+.delete-form {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+/* --- 通知 ------------------------------------------------------------ */
+
+.alert,
+.notice {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid;
+  font-size: 0.95rem;
+}
+
+.alert {
+  background: var(--error-bg);
+  border-color: var(--error-border);
+  color: var(--danger-dark);
+}
+
+.notice-ok {
+  background: var(--ok-bg);
+  border-color: var(--ok-border);
+}
+
+.error {
+  margin: 6px 0 0;
+  color: var(--danger-dark);
+  font-size: 0.88rem;
+}
+
+/* --- テキスト表示 ----------------------------------------------------- */
+
+.preview,
+.received-text {
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.95rem;
+  /* 改行と連続空白を保持する（仕様 7.2）。 */
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.received-text {
+  /* 最大高さ400px、超過時は縦スクロール（仕様 7.2）。 */
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* --- 注意書き / フッター ---------------------------------------------- */
+
+.notes {
+  margin-top: 40px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.notes h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.notes ul {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.notes li + li {
+  margin-top: 6px;
+}
+
+.site-footer {
+  padding: 20px 16px 32px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.site-footer p {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* --- トースト -------------------------------------------------------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(29, 37, 48, 0.92);
+  color: #fff;
+  font-size: 0.9rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+}
+
+.toast.is-visible {
+  opacity: 1;
+}
+
+/* --- 画面幅 ---------------------------------------------------------- */
+
+@media (min-width: 560px) {
+  .actions {
+    flex-direction: row;
+  }
+
+  .actions .btn {
+    width: auto;
+    flex: 1;
+  }
+}

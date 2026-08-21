@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% set active_tab = 'receive' %}
+{% block title %}削除しました — {{ service_name }}{% endblock %}
+
+{% block content %}
+<h1 class="page-title">データを削除しました</h1>
+<p class="notice notice-ok">データを削除しました。この共有キーでは受け取れません。</p>
+<div class="actions">
+  <a class="btn btn-primary" href="{{ url_for('share_form') }}">共有する</a>
+  <a class="btn btn-sub" href="{{ url_for('receive_form') }}">受け取る</a>
+</div>
+{% endblock %}
