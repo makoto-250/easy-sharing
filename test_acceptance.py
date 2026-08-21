@@ -638,3 +638,217 @@ def test_review6_cleanup_keeps_recent_unreferenced_file(client):
     cleanup.run()
     assert storage.path_for(fresh).exists()
     storage.remove(fresh)  # 後片付け
+
+
+# --- サムネイル機能 -------------------------------------------------------
+
+
+def _make_image(fmt, size=(800, 500), mode="RGB", frames=1):
+    """テスト用の実画像バイト列を Pillow で生成する。"""
+    from PIL import Image
+
+    img = Image.new(mode, size, color=(120, 180, 220) if mode == "RGB" else 200)
+    buf = io.BytesIO()
+    if fmt == "GIF" and frames > 1:
+        extra = [Image.new(mode, size, color=(200, 100, 100)) for _ in range(frames - 1)]
+        img.save(buf, format="GIF", save_all=True, append_images=extra)
+    else:
+        img.save(buf, format=fmt)
+    return buf.getvalue()
+
+
+IMG_SAMPLES = {
+    "photo.jpg": ("JPEG", "image/jpeg"),
+    "pic.png": ("PNG", "image/png"),
+    "anim.gif": ("GIF", "image/gif"),
+    "pic.webp": ("WEBP", "image/webp"),
+}
+
+
+@pytest.mark.parametrize("filename", sorted(IMG_SAMPLES))
+def test_thumb_generated_for_images(client, filename):
+    """JPEG/PNG/GIF/WebP を共有するとサムネイルが生成・保存される。"""
+    fmt, mime = IMG_SAMPLES[filename]
+    content = _make_image(fmt)
+    page = body(share_file(client, filename, content, mime))
+    assert "共有しました" in page
+
+    with db.session() as conn:
+        row = conn.execute("SELECT storage_name, thumb_name FROM shares").fetchone()
+    assert row["thumb_name"]
+    assert row["thumb_name"] != row["storage_name"]
+    assert re.fullmatch(r"[0-9a-f]{64}", row["thumb_name"])
+    assert storage.path_for(row["thumb_name"]).exists()
+
+    from PIL import Image
+
+    with Image.open(storage.path_for(row["thumb_name"])) as thumb:
+        assert thumb.format == "PNG"
+        assert thumb.width <= 600 and thumb.height <= 600
+        assert max(thumb.size) == 600  # 長辺は 600 に縮小される（元は800）
+
+
+def test_thumb_shown_on_share_done_and_result(client):
+    """共有完了画面と受け取り結果画面にサムネイルの img タグが出る。"""
+    share_file(client, "pic.png", _make_image("PNG"), "image/png")
+    done = body(client.get("/share/done"))
+    assert "/share/thumbnail" in done
+
+    receive(client)
+    result = body(client.get("/receive/result"))
+    assert "/receive/thumbnail" in result
+
+
+def test_thumb_endpoints_serve_png_inline(client):
+    """サムネイルは PNG を inline（attachment ではない）で返す。"""
+    share_file(client, "pic.png", _make_image("PNG"), "image/png")
+
+    share_thumb = client.get("/share/thumbnail")
+    assert share_thumb.status_code == 200
+    assert share_thumb.mimetype == "image/png"
+    assert "attachment" not in share_thumb.headers.get("Content-Disposition", "")
+    assert share_thumb.headers["X-Content-Type-Options"] == "nosniff"
+    assert "no-store" in share_thumb.headers["Cache-Control"]
+    assert share_thumb.get_data()[:8] == b"\x89PNG\r\n\x1a\n"
+
+    receive(client)
+    recv_thumb = client.get("/receive/thumbnail")
+    assert recv_thumb.status_code == 200
+    assert recv_thumb.mimetype == "image/png"
+
+
+def test_thumb_requires_authorized_session(client):
+    """認可セッションがなければサムネイルは取得できない。"""
+    assert client.get("/receive/thumbnail").status_code == 404
+    client.get("/")  # share_done を消す
+    assert client.get("/share/thumbnail").status_code == 404
+
+
+def test_pdf_has_no_thumbnail(client):
+    """PDF にはサムネイルを作らない。"""
+    content, mime = SAMPLES["sample.pdf"]
+    share_file(client, "sample.pdf", content, mime)
+    with db.session() as conn:
+        row = conn.execute("SELECT thumb_name FROM shares").fetchone()
+    assert row["thumb_name"] is None
+    receive(client)
+    assert "/receive/thumbnail" not in body(client.get("/receive/result"))
+    assert client.get("/receive/thumbnail").status_code == 404
+
+
+def test_thumb_strips_exif(client):
+    """サムネイルに EXIF を引き継がない。"""
+    from PIL import Image
+
+    src = Image.new("RGB", (400, 300), (10, 20, 30))
+    exif = src.getexif()
+    exif[274] = 6  # Orientation タグ
+    buf = io.BytesIO()
+    src.save(buf, format="JPEG", exif=exif)
+
+    share_file(client, "exif.jpg", buf.getvalue(), "image/jpeg")
+    with db.session() as conn:
+        row = conn.execute("SELECT thumb_name FROM shares").fetchone()
+    with Image.open(storage.path_for(row["thumb_name"])) as thumb:
+        assert not dict(thumb.getexif())  # EXIF は空
+
+
+def test_thumb_gif_uses_first_frame_only(client):
+    """アニメGIFのサムネイルは先頭フレームのみ（静止PNG）。"""
+    from PIL import Image
+
+    content = _make_image("GIF", frames=3)
+    share_file(client, "anim.gif", content, "image/gif")
+    with db.session() as conn:
+        row = conn.execute("SELECT thumb_name FROM shares").fetchone()
+    with Image.open(storage.path_for(row["thumb_name"])) as thumb:
+        assert getattr(thumb, "n_frames", 1) == 1
+
+
+def test_decompression_bomb_is_not_thumbnailed():
+    """寸法が画素上限を超える画像はサムネイル化しない（生成側で拒否）。"""
+    import thumbnail as thumb_mod
+
+    class _HugeImage:
+        size = (thumb_mod.MAX_PIXELS, 2)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    orig_open = thumb_mod.Image.open
+    thumb_mod.Image.open = lambda *a, **k: _HugeImage()
+    try:
+        assert thumb_mod.generate("dummy", "image/png") is None
+    finally:
+        thumb_mod.Image.open = orig_open
+
+
+def test_thumb_generation_failure_still_shares(client, monkeypatch):
+    """サムネイル生成に失敗しても共有は成功し、プレビューなしで続行する。"""
+    import thumbnail as thumb_mod
+
+    monkeypatch.setattr(thumb_mod, "generate", lambda path, mime: None)
+    page = body(share_file(client, "pic.png", _make_image("PNG"), "image/png"))
+    assert "共有しました" in page
+    with db.session() as conn:
+        row = conn.execute("SELECT thumb_name FROM shares").fetchone()
+    assert row["thumb_name"] is None
+    assert "/share/thumbnail" not in page
+
+
+def test_manual_delete_removes_thumbnail(client):
+    """任意削除でサムネイルも同時に削除される。"""
+    share_file(client, "pic.png", _make_image("PNG"), "image/png")
+    with db.session() as conn:
+        row = conn.execute("SELECT storage_name, thumb_name FROM shares").fetchone()
+    orig = storage.path_for(row["storage_name"])
+    thumb = storage.path_for(row["thumb_name"])
+    assert orig.exists() and thumb.exists()
+
+    receive(client)
+    client.post("/receive/delete", data={"csrf_token": csrf(client)})
+    assert not orig.exists()
+    assert not thumb.exists()
+
+
+def test_cleanup_removes_thumbnail_on_expiry(client):
+    """期限切れ削除でサムネイルも削除される。"""
+    import cleanup
+
+    share_file(client, "pic.png", _make_image("PNG"), "image/png")
+    with db.session() as conn:
+        row = conn.execute(
+            "SELECT id, storage_name, thumb_name, expires_at FROM shares"
+        ).fetchone()
+    thumb = storage.path_for(row["thumb_name"])
+    assert thumb.exists()
+
+    with db.session() as conn:
+        conn.execute(
+            "UPDATE shares SET expires_at = ? WHERE id = ?",
+            (db.to_db(db.from_db(row["expires_at"]) - timedelta(hours=13)), row["id"]),
+        )
+    cleanup.run()
+    assert not thumb.exists()
+    assert not storage.path_for(row["storage_name"]).exists()
+
+
+def test_cleanup_orphan_sweep_keeps_referenced_thumbnail(client):
+    """孤立ファイル掃除が、参照中のサムネイルを誤って消さない。"""
+    import time
+
+    import cleanup
+
+    share_file(client, "pic.png", _make_image("PNG"), "image/png")
+    with db.session() as conn:
+        row = conn.execute("SELECT storage_name, thumb_name FROM shares").fetchone()
+    thumb = storage.path_for(row["thumb_name"])
+    old = time.time() - 7200
+    os.utime(thumb, (old, old))
+    os.utime(storage.path_for(row["storage_name"]), (old, old))
+    cleanup.run()
+    assert thumb.exists()
+    assert storage.path_for(row["storage_name"]).exists()

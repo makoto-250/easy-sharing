@@ -64,6 +64,7 @@ config.py         # 運用設定（仕様17章）。すべて環境変数で上�
 db.py             # SQLite アクセス層。db.session() で必ず commit + close する
 validation.py     # 共有キー生成/検証、HMAC ダイジェスト、ファイル署名検証
 storage.py        # ファイル本体の保存・削除。ランダム64桁hex名、実行権限なし
+thumbnail.py      # 画像サムネイル生成（Pillow）。600px・EXIF除去・Bomb対策
 ratelimit.py      # IP ハッシュ単位の試行回数制限
 cleanup.py        # cron から叩く定期削除（0時・12時）
 templates/        # S-01 share / S-02 share_done / S-03 receive
@@ -96,6 +97,15 @@ deploy/           # systemd unit, nginx conf, deploy.sh, crontab
 次回定期処理（0時 or 12時）。画面で「12時間後に完全削除」とは書かないこと（仕様 9.2）。
 
 **削除失敗時は `status='delete_pending'`。** 受け取り不可にした上で cleanup.py が再試行する。
+
+**画像はサムネイルを表示する。** JPEG/PNG/WebP/GIF は共有時に Pillow で最大600pxの
+PNG サムネイル（`thumb_name`）を生成し、公開領域外に原本とは別のランダム名で保存する。
+PDF は対象外。共有完了画面は `/share/thumbnail`（share_done セッションで認可）、
+受け取り結果画面は `/receive/thumbnail`（受け取りセッションで認可）が inline で配信する。
+**原本はこれまでどおり attachment 配信**（サムネイルだけが inline）。EXIF は引き継がず、
+GIF は先頭フレームのみ。Decompression Bomb 対策として画素数を `thumbnail.MAX_PIXELS`
+（4000万px）に制限し、超過や生成失敗時は**共有を止めずプレビューなしで続行**する。
+削除（任意・期限切れ・孤立掃除）ではサムネイルも同時に消す。
 
 ## 環境変数（`.env`、git 管理外）
 

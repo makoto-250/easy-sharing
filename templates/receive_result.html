@@ -20,6 +20,9 @@
   <div class="field">
     <p class="label">ファイル</p>
     <div class="file-box">
+      {% if has_thumb %}
+      <img class="thumb" src="{{ url_for('receive_thumbnail') }}" alt="受け取った画像のサムネイル">
+      {% endif %}
       <p class="value">{{ file_name }}</p>
       <p class="help">{{ file_format }} / {{ file_size }}</p>
     </div>

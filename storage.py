@@ -45,6 +45,19 @@ def save(storage, storage_name: str) -> None:
         raise
 
 
+def save_bytes(data: bytes, storage_name: str) -> None:
+    """メモリ上のバイト列（サムネイル等）を保存する。実行権限は与えない。"""
+    ensure_storage_dir()
+    target = path_for(storage_name)
+    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+    except BaseException:
+        remove(storage_name)
+        raise
+
+
 def remove(storage_name: str | None) -> bool:
     """削除に成功、または元から存在しなければ True。失敗したら False。"""
     if not storage_name:

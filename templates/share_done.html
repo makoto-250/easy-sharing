@@ -33,6 +33,9 @@
     <pre class="preview">{{ preview.text }}{% if preview.truncated %}…{% endif %}</pre>
     {% else %}
     <div class="file-box">
+      {% if preview.has_thumb %}
+      <img class="thumb" src="{{ url_for('share_thumbnail') }}" alt="共有した画像のサムネイル">
+      {% endif %}
       <p class="value">{{ preview.name }}</p>
       <p class="help">{{ preview.format }} / {{ preview.size }}</p>
     </div>

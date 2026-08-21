@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS shares (
     data_type     TEXT NOT NULL CHECK (data_type IN ('text', 'file')),
     text_body     TEXT,
     storage_name  TEXT,
+    thumb_name    TEXT,
     original_name TEXT,
     mime_type     TEXT,
     file_size     INTEGER,
@@ -100,6 +101,14 @@ def immediate():
 def init_db() -> None:
     with session() as conn:
         conn.executescript(SCHEMA)
+        _migrate(conn)
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """既存DBに後から追加した列を補う（CREATE TABLE IF NOT EXISTS では追加されない）。"""
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(shares)")}
+    if "thumb_name" not in columns:
+        conn.execute("ALTER TABLE shares ADD COLUMN thumb_name TEXT")
 
 
 def vacuum() -> None:
@@ -120,10 +129,10 @@ def insert_share(conn: sqlite3.Connection, record: dict) -> None:
     conn.execute(
         """
         INSERT INTO shares (id, key_digest, data_type, text_body, storage_name,
-                            original_name, mime_type, file_size, status,
+                            thumb_name, original_name, mime_type, file_size, status,
                             created_at, expires_at)
         VALUES (:id, :key_digest, :data_type, :text_body, :storage_name,
-                :original_name, :mime_type, :file_size, :status,
+                :thumb_name, :original_name, :mime_type, :file_size, :status,
                 :created_at, :expires_at)
         """,
         record,

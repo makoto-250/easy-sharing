@@ -31,7 +31,10 @@ def run() -> int:
     failed = 0
 
     for row in targets:
-        if storage.remove(row["storage_name"]):
+        # 原本とサムネイルの両方を消す。両方成功した場合のみレコードを削除する。
+        removed = storage.remove(row["storage_name"])
+        thumb_removed = storage.remove(row["thumb_name"])
+        if removed and thumb_removed:
             with db.session() as conn:
                 db.delete_share(conn, row["id"])
             succeeded += 1
@@ -70,7 +73,10 @@ def _sweep_orphans() -> int:
     if not storage_dir.exists():
         return 0
     with db.session() as conn:
-        known = {r["storage_name"] for r in conn.execute("SELECT storage_name FROM shares")}
+        known = set()
+        for r in conn.execute("SELECT storage_name, thumb_name FROM shares"):
+            known.add(r["storage_name"])
+            known.add(r["thumb_name"])
     cutoff = time.time() - 3600  # 1時間より古いものだけ
     removed = 0
     for path in storage_dir.iterdir():

@@ -489,6 +489,24 @@ textarea:focus-visible,
   margin-top: 4px;
 }
 
+/* 画像サムネイル。市松模様で透過部分が分かるようにする。 */
+.thumb {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  margin: 0 auto 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #eef2f7 25%, transparent 25%),
+    linear-gradient(-45deg, #eef2f7 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #eef2f7 75%),
+    linear-gradient(-45deg, transparent 75%, #eef2f7 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
 /* --- 注意書き / フッター ---------------------------------------------- */
 
 /* 注意書きは淡い黄色のボックスにまとめる */

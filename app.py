@@ -28,6 +28,7 @@ import config
 import db
 import ratelimit
 import storage
+import thumbnail
 import validation
 
 config.validate()
@@ -144,9 +145,10 @@ def _cleanup_orphan(record):
     ここで消し損ねてもファイルは DB のどのレコードからも参照されない孤立状態で、
     cleanup.py の孤立ファイル掃除が最終的に回収する（指摘#6）。
     """
-    name = record.get("storage_name")
-    if name and not storage.remove(name):
-        logger.error("孤立ファイルの回収に失敗しました name=%s", name)
+    for key in ("storage_name", "thumb_name"):
+        name = record.get(key)
+        if name and not storage.remove(name):
+            logger.error("孤立ファイルの回収に失敗しました name=%s", name)
 
 
 # --- S-01 共有する --------------------------------------------------------
@@ -191,6 +193,7 @@ def share_create():
         "data_type": data_type,
         "text_body": None,
         "storage_name": None,
+        "thumb_name": None,
         "original_name": None,
         "mime_type": None,
         "file_size": None,
@@ -239,6 +242,7 @@ def share_create():
             "name": record["original_name"],
             "format": validation.format_label(mime_type),
             "size": validation.format_size(size),
+            "has_thumb": False,
         }
 
     created_at = db.utcnow()
@@ -253,6 +257,20 @@ def share_create():
         except OSError:
             logger.exception("ファイルの保存に失敗しました id=%s", record["id"])
             return fail({"general": ERR_INTERNAL}, 500)
+
+        # 画像ならサムネイルを生成する。失敗しても共有は止めず、プレビューなしで続行する。
+        if thumbnail.can_thumbnail(record["mime_type"]):
+            data = thumbnail.generate(
+                storage.path_for(record["storage_name"]), record["mime_type"]
+            )
+            if data:
+                thumb_name = storage.new_storage_name()
+                try:
+                    storage.save_bytes(data, thumb_name)
+                    record["thumb_name"] = thumb_name
+                    preview["has_thumb"] = True
+                except OSError:
+                    logger.warning("サムネイルの保存に失敗しました id=%s", record["id"])
 
     # レート制限・容量制限の確認と、レコード挿入・記録を1つの書き込みロック内で
     # まとめて行う。上の早期チェックは高速な門前払い用で、ここが確定判定になる
@@ -295,7 +313,9 @@ def share_create():
     )
 
     # POST/Redirect/GET で二重送信を防ぐ（仕様 11.1）。
+    # id はサムネイル配信の認可にだけ使う（共有キー平文ではないので保持してよい）。
     session["share_done"] = {
+        "id": record["id"],
         "share_key": share_key,
         "expires_at": record["expires_at"],
         "preview": preview,
@@ -321,6 +341,36 @@ def share_done():
     # 平文の共有キーを表示する画面はキャッシュに残さない。
     response.headers["Cache-Control"] = "no-store, max-age=0"
     return response
+
+
+def _serve_thumbnail(row):
+    """認可済みの行のサムネイルを inline で返す。原本ではなく生成済みPNGのみ。"""
+    if row is None or not row["thumb_name"]:
+        abort(404)
+    try:
+        handle = storage.open_for_read(row["thumb_name"])
+    except OSError:
+        abort(404)
+    response = send_file(
+        handle,
+        mimetype=thumbnail.OUTPUT_MIME,
+        as_attachment=False,
+        max_age=0,
+    )
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@app.get("/share/thumbnail")
+def share_thumbnail():
+    """共有完了画面のサムネイル。直前に共有した本人のセッションだけが見られる。"""
+    done = session.get("share_done")
+    if not done or not done.get("id"):
+        abort(404)
+    with db.session() as conn:
+        row = db.find_active_by_id(conn, done["id"])
+    return _serve_thumbnail(row)
 
 
 # --- S-03 受け取る --------------------------------------------------------
@@ -408,6 +458,7 @@ def receive_result():
         "file_size": (
             validation.format_size(row["file_size"]) if row["file_size"] else ""
         ),
+        "has_thumb": bool(row["thumb_name"]),
     }
     response = app.make_response(render_template("receive_result.html", **context))
     # 結果画面はキャッシュに残さない（仕様 7.1）。
@@ -452,6 +503,14 @@ def receive_download():
     return response
 
 
+@app.get("/receive/thumbnail")
+def receive_thumbnail():
+    """受け取り結果画面のサムネイル。受け取りセッションの認可でのみ表示する。"""
+    with db.session() as conn:
+        row = _current_receive_row(conn)
+    return _serve_thumbnail(row)
+
+
 # --- S-05 任意削除 --------------------------------------------------------
 
 
@@ -466,13 +525,16 @@ def receive_delete():
             return page, 404
         share_id = row["id"]
         storage_name = row["storage_name"]
+        thumb_name = row["thumb_name"]
         # 先に受け取り不可（delete_pending）へ遷移させてから物理削除する。
         # この順にすると、ファイル削除後にDBが落ちても「active なのに実体がない」
         # 状態にはならず、cleanup.py が確実に後始末できる（仕様 8.3）。
         db.mark_delete_pending(conn, share_id)
 
+    # 原本とサムネイルの両方を消せたときだけレコードを削除する。
     removed = storage.remove(storage_name)
-    if removed:
+    thumb_removed = storage.remove(thumb_name)
+    if removed and thumb_removed:
         with db.session() as conn:
             db.delete_share(conn, share_id)
 
