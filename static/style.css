@@ -101,6 +101,19 @@ body {
   font-size: 0.95rem;
 }
 
+/* ラベルと、その行の右端に置くボタン */
+.field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 6px;
+}
+
+.field-head .label {
+  margin: 0;
+}
+
 .value {
   margin: 0;
   font-size: 1.05rem;
@@ -232,6 +245,11 @@ textarea:focus-visible,
 .btn-danger:hover {
   background: var(--danger-dark);
   color: #fff;
+}
+
+.btn-small {
+  padding: 6px 14px;
+  font-size: 0.85rem;
 }
 
 .btn[disabled] {
