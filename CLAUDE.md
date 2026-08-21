@@ -16,6 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |---|---|
 | 本番 | ConoHa VPS `160.251.183.195` (Ubuntu 22.04)、`ssh root@160.251.183.195` |
 | 公開URL | https://easy.ai-web-support.com |
+| リポジトリ | https://github.com/makoto-250/easy-sharing （PC・VPS 両方に origin 設定済み） |
 | VPS パス | `/root/easy-sharing` |
 | ポート | **5040**（127.0.0.1 のみ。nginx が proxy する） |
 | DB | SQLite `/var/lib/easy-sharing/easy_sharing.db` |
@@ -36,7 +37,7 @@ VPS の他ポート使用状況: 5000, 5001, 5003, 5006-5008, 5010-5012, 5015, 5
 # 受け入れテスト（仕様書16章をそのまま実装したもの。46件）
 .venv/Scripts/python.exe -m pytest test_acceptance.py -q
 
-# VPS デプロイ
+# VPS デプロイ（PC で commit & push したあとに実行する）
 ssh root@160.251.183.195 '/root/easy-sharing/deploy/deploy.sh'
 
 # VPS 個別操作

@@ -6,7 +6,8 @@
 - 受け取り期限: 共有完了から12時間。期限後は受け取り不可、次回の定期削除（毎日0時・12時）で物理削除
 - 共有キーを知っている人は、受け取りと削除の両方ができる
 
-公開URL: https://easy.ai-web-support.com
+- 公開URL: https://easy.ai-web-support.com
+- リポジトリ: https://github.com/makoto-250/easy-sharing
 
 ## セットアップ（ローカル）
 
